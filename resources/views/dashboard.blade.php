@@ -9,7 +9,6 @@
             </div>
 
             <div class="dashboard-meta">
-                <span>🔄 Auto refresh 3 detik</span>
                 <span id="lastUpdate">Update terakhir: -</span>
             </div>
         </div>
@@ -381,6 +380,35 @@
         const initialMeasurements = @json($measurements);
         const initialMapData = @json($mapData);
 
+        const arresterLookup = {};
+        initialMapData.forEach(item => {
+            arresterLookup[item.kode_arrester] = item;
+        });
+
+        function getStatusFromLeakCurrent(value) {
+            const leak = parseFloat(value);
+
+            if (leak < 1) return 'NORMAL';
+            if (leak <= 10) return 'WARNING';
+            return 'FAULT';
+        }
+
+        function normalizeRealtimeRows(rows) {
+            return rows.map(row => {
+                const arrester = arresterLookup[row.arrester_id] ?? {};
+
+                return {
+                    ...row,
+                    lokasi: row.lokasi && row.lokasi !== '-' ? row.lokasi : (arrester.lokasi ?? '-'),
+                    latitude: row.latitude ?? arrester.latitude ?? null,
+                    longitude: row.longitude ?? arrester.longitude ?? null,
+                    status: row.status && row.status.trim() !== ''
+                        ? row.status
+                        : getStatusFromLeakCurrent(row.leak_current),
+                };
+            });
+        }
+
         const ctx = document.getElementById('chartLeak');
 
         const chartLeak = new Chart(ctx, {
@@ -443,7 +471,9 @@
 
         function formatStatus(status) {
             const s = (status || '').toString().trim().toUpperCase();
-            return s === 'NO_DATA' ? 'BELUM ADA DATA' : s;
+            if (s === 'NO_DATA') return 'BELUM ADA DATA';
+            if (!s) return '-';
+            return s;
         }
 
         function renderTable(rows) {
@@ -460,7 +490,11 @@
                         <td>${row.lokasi ?? '-'}</td>
                         <td>${koordinat}</td>
                         <td>${row.leak_current} mA</td>
-                        <td><span class="status-badge ${getStatusClass(row.status)}">${formatStatus(row.status)}</span></td>
+                        <td>
+                            <span class="status-badge ${getStatusClass(row.status)}">
+                                ${formatStatus(row.status)}
+                            </span>
+                        </td>
                         <td>${row.measured_at}</td>
                     </tr>
                 `;
@@ -485,7 +519,7 @@
             document.getElementById('dataTable').innerHTML = tableHtml;
         }
 
-        renderTable(initialMeasurements);
+        renderTable(normalizeRealtimeRows(initialMeasurements));
 
         const map = L.map('map').setView([-6.2, 106.8], 11);
 
@@ -541,13 +575,13 @@
                     <b>Waktu:</b> ${item.measured_at ?? '-'}<br><br>
 
                     <a href="/measurement-history/${item.kode_arrester}" 
-                       style="display:inline-block; padding:6px 10px; background:#2563eb; color:white; text-decoration:none; border-radius:6px; margin-right:6px;">
+                    style="display:inline-block; padding:6px 10px; background:#2563eb; color:white; text-decoration:none; border-radius:6px; margin-right:6px;">
                         Lihat Histori
                     </a>
 
                     <a href="https://www.google.com/maps?q=${item.latitude},${item.longitude}" 
-                       target="_blank"
-                       style="display:inline-block; padding:6px 10px; background:#16a34a; color:white; text-decoration:none; border-radius:6px;">
+                    target="_blank"
+                    style="display:inline-block; padding:6px 10px; background:#16a34a; color:white; text-decoration:none; border-radius:6px;">
                         Google Maps
                     </a>
                 </div>
@@ -583,7 +617,7 @@
             fetch('/api/measurement/latest')
                 .then(response => response.json())
                 .then(data => {
-                    const rows = [...data].reverse();
+                    const rows = normalizeRealtimeRows([...data].reverse());
 
                     const labels = rows.map(row => row.measured_at);
                     const values = rows.map(row => row.leak_current);

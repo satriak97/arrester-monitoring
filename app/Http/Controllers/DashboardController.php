@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Arrester;
 use App\Models\Measurement;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
@@ -13,15 +12,16 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
+        $restrictedRoles = ['admin_cabang', 'user'];
+
         $arresterQuery = Arrester::with('latestMeasurement');
 
-        if ($user->role === 'admin_cabang') {
+        if (in_array($user->role, $restrictedRoles)) {
             $arresterQuery->where('cabang', $user->cabang);
         }
 
         $arresters = $arresterQuery->get();
 
-        // Card grid: hitung dari status TERAKHIR tiap arrester
         $normal = $arresters->filter(function ($arrester) {
             return optional($arrester->latestMeasurement)->status === 'NORMAL';
         })->count();
@@ -34,10 +34,9 @@ class DashboardController extends Controller
             return optional($arrester->latestMeasurement)->status === 'FAULT';
         })->count();
 
-        // Tabel: tetap ambil 20 measurement terbaru
         $measurementsQuery = Measurement::with('arrester');
 
-        if ($user->role === 'admin_cabang') {
+        if (in_array($user->role, $restrictedRoles)) {
             $measurementsQuery->whereHas('arrester', function ($q) use ($user) {
                 $q->where('cabang', $user->cabang);
             });
@@ -48,7 +47,6 @@ class DashboardController extends Controller
             ->limit(20)
             ->get();
 
-        // Map: pakai latestMeasurement, NO_DATA hanya jika belum pernah ada measurement
         $mapData = $arresters
             ->filter(function ($arrester) {
                 return !is_null($arrester->latitude) && !is_null($arrester->longitude);

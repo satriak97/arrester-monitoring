@@ -255,37 +255,81 @@
             background: white;
         }
 
-        .pagination-wrapper nav {
+        .pagination-wrapper {
+            margin-top: 20px;
+        }
+
+        .pln-pagination {
+            padding: 16px 18px;
+            background: #ffffff;
+            border-radius: 14px;
+            border: 1px solid #e5e7eb;
             display: flex;
-            justify-content: center;
-        }
-
-        .pagination-wrapper ul {
-            display: flex !important;
-            gap: 8px;
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .pagination-wrapper li {
-            display: inline-block;
-        }
-
-        .pagination-wrapper a,
-        .pagination-wrapper span {
-            display: block;
-            padding: 8px 12px;
-            border-radius: 8px;
-            text-decoration: none;
-            background: #f3f4f6;
-            color: #111827;
+            justify-content: space-between;
+            align-items: center;
+            gap: 18px;
+            flex-wrap: wrap;
+            color: #374151;
             font-size: 14px;
         }
 
-        .pagination-wrapper .active span {
-            background: #2563eb;
-            color: white;
+        .pagination-left,
+        .pagination-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .pln-pagination select,
+        .pln-pagination input {
+            height: 38px;
+            border: 1px solid #9ca3af;
+            border-radius: 8px;
+            padding: 0 12px;
+            background: #fff;
+            font-size: 14px;
+        }
+
+        .pln-pagination input {
+            width: 70px;
+            text-align: center;
+        }
+
+        .page-link {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 700;
+            background: transparent !important;
+            border: none;
+            padding: 0 4px;
+        }
+
+        .page-link.disabled {
+            color: #93c5fd;
+            cursor: not-allowed;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 22px 12px;
+            font-size: 13px;
+            color: #6b7280;
+            background: #fff;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 40px;
+            line-height: 1.7;
+        }
+
+        @media (max-width: 768px) {
+            .pln-pagination {
+                justify-content: center;
+            }
+
+            .pagination-left,
+            .pagination-right {
+                justify-content: center;
+            }
         }
 
         .mobile-menu-toggle {
@@ -410,7 +454,7 @@
             @endauth
 
             @auth
-                @if(in_array(auth()->user()->role, ['admin_master', 'admin_cabang']))
+                @if(in_array(auth()->user()->role, ['admin_master', 'admin_cabang', 'user']))
                     <a href="{{ url('/arrester') }}" class="{{ request()->is('arrester*') ? 'active' : '' }}">
                         Data Arrester
                     </a>
@@ -480,6 +524,21 @@
         navMenu.classList.toggle('show');
     }
 </script>
+
+<script>
+    function toggleMobileMenu() {
+        const navMenu = document.getElementById('navMenu');
+        navMenu.classList.toggle('show');
+    }
+</script>
+
+<footer class="footer">
+    © {{ date('Y') }} Monitoring Arrester Leakage Current System <br>
+    PT PLN (Persero) UP3 Cianjur
+</footer>
+
+</body>
+</html>
 
 </body>
 </html>

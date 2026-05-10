@@ -13,20 +13,14 @@ class MeasurementHistoryController extends Controller
         $status = $request->status;
         $user = auth()->user();
 
-        $measurements = \App\Models\Measurement::with('arrester')
+        $measurements = Measurement::with('arrester')
             ->when($search, function ($query) use ($search) {
                 $query->where('arrester_id', 'like', '%' . $search . '%');
             })
             ->when($status, function ($query) use ($status) {
-                if ($status === 'NORMAL') {
-                    $query->where('leak_current', '<', 1);
-                } elseif ($status === 'WARNING') {
-                    $query->whereBetween('leak_current', [1, 10]);
-                } elseif ($status === 'FAULT') {
-                    $query->where('leak_current', '>', 10);
-                }
+                $query->where('status', $status);
             })
-            ->when($user->role === 'admin_cabang', function ($query) use ($user) {
+            ->when(in_array($user->role, ['admin_cabang', 'user']), function ($query) use ($user) {
                 $query->whereHas('arrester', function ($q) use ($user) {
                     $q->where('cabang', $user->cabang);
                 });
@@ -42,9 +36,9 @@ class MeasurementHistoryController extends Controller
     {
         $user = auth()->user();
 
-        $measurements = \App\Models\Measurement::with('arrester')
+        $measurements = Measurement::with('arrester')
             ->where('arrester_id', $arrester_id)
-            ->when($user->role === 'admin_cabang', function ($query) use ($user) {
+            ->when(in_array($user->role, ['admin_cabang', 'user']), function ($query) use ($user) {
                 $query->whereHas('arrester', function ($q) use ($user) {
                     $q->where('cabang', $user->cabang);
                 });

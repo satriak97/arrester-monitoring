@@ -80,7 +80,7 @@
 
             @if($measurements->count() > 0)
                 <div class="pagination-wrapper" style="margin-top:20px;">
-                    {{ $measurements->links() }}
+                    {{ $measurements->links('vendor.pagination.pln-pagination') }}
                 </div>
             @endif
         </div>

@@ -7,6 +7,8 @@ use App\Models\Arrester;
 
 class ArresterController extends Controller
 {
+    private array $restrictedRoles = ['admin_cabang', 'user'];
+
     public function index(Request $request)
     {
         $search = $request->search;
@@ -19,7 +21,7 @@ class ArresterController extends Controller
                       ->orWhere('cabang', 'like', '%' . $search . '%');
                 });
             })
-            ->when($authUser->role === 'admin_cabang', function ($query) use ($authUser) {
+            ->when(in_array($authUser->role, $this->restrictedRoles), function ($query) use ($authUser) {
                 $query->where('cabang', $authUser->cabang);
             })
             ->orderBy('kode_arrester', 'asc')
@@ -31,12 +33,16 @@ class ArresterController extends Controller
 
     public function create()
     {
+        abort_if(auth()->user()->role === 'user', 403);
+
         return view('arrester.create');
     }
 
     public function store(Request $request)
     {
         $authUser = auth()->user();
+
+        abort_if($authUser->role === 'user', 403);
 
         $validated = $request->validate([
             'nomor_arrester' => 'required|numeric|min:1|max:9999',
@@ -45,23 +51,20 @@ class ArresterController extends Controller
             'longitude' => 'nullable|numeric',
         ]);
 
-        // Tentukan cabang
         if ($authUser->role === 'admin_master') {
             $request->validate([
                 'cabang' => 'required|string|max:255',
             ]);
+
             $cabang = $request->input('cabang');
         } else {
             $cabang = $authUser->cabang;
         }
 
         $prefix = $this->getKodeCabang($cabang);
-
-        // 5 digit total = 1 digit prefix + 4 digit nomor
         $nomorBelakang = str_pad($validated['nomor_arrester'], 4, '0', STR_PAD_LEFT);
         $kodeArrester = $prefix . $nomorBelakang;
 
-        // Cek unik
         if (Arrester::where('kode_arrester', $kodeArrester)->exists()) {
             return back()
                 ->withErrors(['nomor_arrester' => 'Kode arrester sudah digunakan!'])
@@ -83,6 +86,8 @@ class ArresterController extends Controller
     {
         $authUser = auth()->user();
 
+        abort_if($authUser->role === 'user', 403);
+
         $arrester = Arrester::when($authUser->role === 'admin_cabang', function ($query) use ($authUser) {
                 $query->where('cabang', $authUser->cabang);
             })
@@ -94,6 +99,8 @@ class ArresterController extends Controller
     public function update(Request $request, $id)
     {
         $authUser = auth()->user();
+
+        abort_if($authUser->role === 'user', 403);
 
         $arrester = Arrester::when($authUser->role === 'admin_cabang', function ($query) use ($authUser) {
                 $query->where('cabang', $authUser->cabang);
@@ -107,19 +114,17 @@ class ArresterController extends Controller
             'longitude' => 'nullable|numeric',
         ]);
 
-        // Tentukan cabang
         if ($authUser->role === 'admin_master') {
             $request->validate([
                 'cabang' => 'required|string|max:255',
             ]);
+
             $cabang = $request->input('cabang');
         } else {
             $cabang = $authUser->cabang;
         }
 
         $prefix = $this->getKodeCabang($cabang);
-
-        // 5 digit total = 1 digit prefix + 4 digit nomor
         $nomorBelakang = str_pad($validated['nomor_arrester'], 4, '0', STR_PAD_LEFT);
         $kodeArrester = $prefix . $nomorBelakang;
 
@@ -147,6 +152,8 @@ class ArresterController extends Controller
     public function destroy($id)
     {
         $authUser = auth()->user();
+
+        abort_if($authUser->role === 'user', 403);
 
         $arrester = Arrester::when($authUser->role === 'admin_cabang', function ($query) use ($authUser) {
                 $query->where('cabang', $authUser->cabang);

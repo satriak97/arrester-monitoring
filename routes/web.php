@@ -12,35 +12,50 @@ Route::get('/', function () {
     return redirect('/dashboard');
 });
 
-Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth'])
-    ->name('dashboard');
+Route::middleware(['auth'])->group(function () {
 
-Route::resource('arrester', ArresterController::class)
-    ->middleware(['auth', 'admin']);
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+        ->name('dashboard');
 
-Route::get('/measurement-history', [MeasurementHistoryController::class, 'index'])
-    ->middleware(['auth'])
-    ->name('measurement.history');
+    // Data Arrester: semua role login boleh lihat
+    Route::get('/arrester', [ArresterController::class, 'index'])
+        ->name('arrester.index');
 
-Route::resource('users', UserController::class)
-    ->middleware(['auth', 'admin']);
+    // CRUD Arrester: hanya admin
+    Route::middleware(['admin'])->group(function () {
+        Route::get('/arrester/create', [ArresterController::class, 'create'])
+            ->name('arrester.create');
 
-Route::get('/measurement-history/{arrester_id}', [\App\Http\Controllers\MeasurementHistoryController::class, 'showByArrester'])
-    ->middleware(['auth'])
-    ->name('measurement.history.by_arrester');
+        Route::post('/arrester', [ArresterController::class, 'store'])
+            ->name('arrester.store');
 
-Route::resource('users', UserController::class)
-    ->middleware(['auth', 'admin_master']);
+        Route::get('/arrester/{id}/edit', [ArresterController::class, 'edit'])
+            ->name('arrester.edit');
 
-Route::resource('users', UserController::class)
-    ->middleware(['auth', 'admin_master']);
+        Route::put('/arrester/{id}', [ArresterController::class, 'update'])
+            ->name('arrester.update');
 
-Route::get('/managed-users', [ManagedUserController::class, 'index'])
-    ->middleware(['auth', 'admin_cabang'])
-    ->name('managed-users.index');
+        Route::delete('/arrester/{id}', [ArresterController::class, 'destroy'])
+            ->name('arrester.destroy');
+    });
 
-Route::resource('cabang-users', CabangUserController::class)
-    ->middleware(['auth', 'admin_cabang']);
+    Route::get('/measurement-history', [MeasurementHistoryController::class, 'index'])
+        ->name('measurement.history');
+
+    Route::get('/measurement-history/{arrester_id}', [MeasurementHistoryController::class, 'showByArrester'])
+        ->name('measurement.history.by_arrester');
+
+    // Kelola User: hanya admin master
+    Route::resource('users', UserController::class)
+        ->middleware(['admin_master']);
+
+    // Kelola user oleh admin cabang
+    Route::get('/managed-users', [ManagedUserController::class, 'index'])
+        ->middleware(['admin_cabang'])
+        ->name('managed-users.index');
+
+    Route::resource('cabang-users', CabangUserController::class)
+        ->middleware(['admin_cabang']);
+});
 
 require __DIR__.'/auth.php';

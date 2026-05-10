@@ -11,26 +11,22 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $search = $request->search;
-        $authUser = auth()->user();
 
         $users = User::with('adminCabang')
             ->when($search, function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('username', 'like', '%' . $search . '%')
-                    ->orWhere('email', 'like', '%' . $search . '%')
-                    ->orWhere('role', 'like', '%' . $search . '%')
+                $query->where('username', 'like', '%' . $search . '%')
+                    ->orWhere('name', 'like', '%' . $search . '%')
                     ->orWhere('cabang', 'like', '%' . $search . '%');
-                });
-            })
-            ->when($authUser->role === 'admin_cabang', function ($query) use ($authUser) {
-                $query->where('admin_cabang_id', $authUser->id);
             })
             ->orderBy('id', 'asc')
             ->paginate(10)
             ->withQueryString();
 
-        return view('users.index', compact('users', 'search'));
+        $adminCabangs = User::where('role', 'admin_cabang')
+            ->orderBy('name')
+            ->get();
+
+        return view('users.index', compact('users', 'search', 'adminCabangs'));
     }
 
     public function create()
