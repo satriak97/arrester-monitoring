@@ -34,7 +34,7 @@ class DashboardController extends Controller
             return optional($arrester->latestMeasurement)->status === 'FAULT';
         })->count();
 
-        $measurementsQuery = Measurement::with('arrester');
+        $measurementsQuery = Measurement::with('arrester.penyulang.gi');
 
         if (in_array($user->role, $restrictedRoles)) {
             $measurementsQuery->whereHas('arrester', function ($q) use ($user) {
@@ -56,6 +56,9 @@ class DashboardController extends Controller
 
                 return [
                     'kode_arrester' => $arrester->kode_arrester,
+                    'gi' => optional(optional($arrester->penyulang)->gi)->nama_gi,
+                    'id_penyulang' => $arrester->penyulang?->id,
+                    'penyulang' => optional($arrester->penyulang)->nama_penyulang,
                     'lokasi' => $arrester->lokasi,
                     'latitude' => (float) $arrester->latitude,
                     'longitude' => (float) $arrester->longitude,

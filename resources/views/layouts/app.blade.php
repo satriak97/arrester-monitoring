@@ -420,6 +420,7 @@
                 font-size: 24px;
             }
         }
+        
     </style>
 </head>
 <body>
@@ -458,6 +459,11 @@
                     <a href="{{ url('/arrester') }}" class="{{ request()->is('arrester*') ? 'active' : '' }}">
                         Data Arrester
                     </a>
+
+                    <a href="{{ route('gi-penyulang.index') }}"
+                    class="{{ request()->routeIs('gi-penyulang.*') ? 'active' : '' }}">
+                        GI & Penyulang
+                    </a>
                 @endif
 
                 @if(auth()->user()->role === 'admin_master')
@@ -466,6 +472,7 @@
                     </a>
                 @endif
             @endauth
+
         </div>
     </div>
 

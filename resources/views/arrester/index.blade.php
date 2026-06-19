@@ -1,13 +1,21 @@
 <x-app-layout>
     @php
         $canManageArrester = auth()->user()->role !== 'user';
-        $emptyColspan = $canManageArrester ? 7 : 6;
+        $emptyColspan = $canManageArrester ? 9 : 8;
     @endphp
 
     <div class="arrester-page">
         <h2 class="page-title">Data Arrester</h2>
 
         <div class="panel">
+            @if($errors->any())
+                <div class="alert-error">
+                    @foreach($errors->all() as $error)
+                        <div>{{ $error }}</div>
+                    @endforeach
+                </div>
+            @endif
+
             <div class="top-bar">
                 @if($canManageArrester)
                     <button type="button" class="btn" onclick="openModal('createModal')">
@@ -24,10 +32,17 @@
                         type="text"
                         name="search"
                         value="{{ request('search') }}"
-                        placeholder="Cari kode / lokasi..."
+                        placeholder="Cari kode / GI / penyulang / lokasi..."
                         class="search-input"
                     >
+
                     <button type="submit" class="btn">Cari</button>
+
+                    @if(request('search'))
+                        <a href="{{ url('/arrester') }}" class="btn btn-secondary">
+                            Reset
+                        </a>
+                    @endif
                 </form>
             </div>
 
@@ -38,6 +53,9 @@
                             <th>No</th>
                             <th>Kode Arrester</th>
                             <th>Cabang</th>
+                            <th>GI</th>
+                            <th>ID Penyulang</th>
+                            <th>Penyulang</th>
                             <th>Lokasi</th>
                             <th>Latitude</th>
                             <th>Longitude</th>
@@ -51,10 +69,33 @@
                         @forelse($arresters as $a)
                             <tr>
                                 <td>{{ ($arresters->currentPage() - 1) * $arresters->perPage() + $loop->iteration }}</td>
+
                                 <td>
                                     <span class="kode-badge">{{ $a->kode_arrester }}</span>
                                 </td>
-                                <td>{{ $a->cabang }}</td>
+
+                                <td>
+                                    <span class="cabang-badge">{{ $a->cabang ?? '-' }}</span>
+                                </td>
+
+                                <td>
+                                    <span class="gi-badge">
+                                        {{ optional(optional($a->penyulang)->gi)->nama_gi ?? '-' }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="kode-badge">
+                                        {{ optional($a->penyulang)->id ?? '-' }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="penyulang-badge">
+                                        {{ optional($a->penyulang)->nama_penyulang ?? '-' }}
+                                    </span>
+                                </td>
+
                                 <td>{{ $a->lokasi }}</td>
                                 <td>{{ $a->latitude ?? '-' }}</td>
                                 <td>{{ $a->longitude ?? '-' }}</td>
@@ -66,9 +107,10 @@
                                                 Edit
                                             </button>
 
-                                            <form action="{{ url('/arrester/'.$a->id) }}" method="POST" style="display:inline-block;">
+                                            <form action="{{ url('/arrester/'.$a->id) }}" method="POST">
                                                 @csrf
                                                 @method('DELETE')
+
                                                 <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Yakin ingin menghapus data ini?')">
                                                     Hapus
                                                 </button>
@@ -79,7 +121,6 @@
                             </tr>
 
                             @if($canManageArrester)
-                                {{-- MODAL EDIT --}}
                                 <div id="editModal{{ $a->id }}" class="modal-overlay">
                                     <div class="modal-box">
                                         <div class="modal-header">
@@ -102,21 +143,26 @@
 
                                             <div class="form-group">
                                                 <label>Nomor Arrester</label>
-                                                <input type="number" name="nomor_arrester" value="{{ $nomorBelakang }}" min="1" max="9999" required>
+                                                <input type="number" name="nomor_arrester" value="{{ $nomorBelakang }}" min="1" max="999999" required>
                                                 <small>Nomor belakang diisi manual. Prefix mengikuti cabang.</small>
                                             </div>
 
-                                            @if(auth()->user()->role === 'admin_master')
-                                                <div class="form-group">
-                                                    <label>Cabang</label>
-                                                    <input type="text" name="cabang" value="{{ $a->cabang }}" required>
-                                                </div>
-                                            @else
-                                                <div class="form-group">
-                                                    <label>Cabang</label>
-                                                    <input type="text" value="{{ $a->cabang }}" disabled>
-                                                </div>
-                                            @endif
+                                            <div class="form-group">
+                                                <label>Cabang</label>
+                                                <input type="text" value="{{ $a->cabang }}" disabled>
+                                            </div>
+
+                                            <div class="form-group">
+                                                <label>GI / Penyulang</label>
+                                                <select name="penyulang_id" class="select-penyulang" required>
+                                                    <option value="">-- Pilih Penyulang --</option>
+                                                    @foreach($penyulangs as $p)
+                                                        <option value="{{ $p->id }}" {{ $a->penyulang_id == $p->id ? 'selected' : '' }}>
+                                                            {{ optional($p->gi)->nama_gi ?? '-' }} - {{ $p->nama_penyulang }} ({{ $p->cabang }})
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
 
                                             <div class="form-group">
                                                 <label>Lokasi</label>
@@ -134,8 +180,12 @@
                                             </div>
 
                                             <div class="modal-actions">
-                                                <button type="button" class="btn btn-secondary" onclick="closeModal('editModal{{ $a->id }}')">Batal</button>
-                                                <button type="submit" class="btn">Update</button>
+                                                <button type="button" class="btn btn-secondary" onclick="closeModal('editModal{{ $a->id }}')">
+                                                    Batal
+                                                </button>
+                                                <button type="submit" class="btn">
+                                                    Update
+                                                </button>
                                             </div>
                                         </form>
                                     </div>
@@ -159,7 +209,7 @@
             </div>
 
             @if($arresters->count() > 0)
-                <div class="pagination-wrapper" style="margin-top:20px;">
+                <div class="pagination-wrapper">
                     {{ $arresters->links('vendor.pagination.pln-pagination') }}
                 </div>
             @endif
@@ -167,7 +217,6 @@
     </div>
 
     @if($canManageArrester)
-        {{-- MODAL TAMBAH --}}
         <div id="createModal" class="modal-overlay">
             <div class="modal-box">
                 <div class="modal-header">
@@ -181,13 +230,13 @@
                     <div class="form-group">
                         <label>Nomor Arrester</label>
                         <input type="number" name="nomor_arrester" min="1" max="9999" required>
-                        <small>Nomor belakang diisi manual. Prefix mengikuti cabang.</small>
+                        <small>Nomor belakang diisi manual. Prefix mengikuti cabang penyulang.</small>
                     </div>
 
                     @if(auth()->user()->role === 'admin_master')
                         <div class="form-group">
                             <label>Cabang</label>
-                            <input type="text" name="cabang" required>
+                            <input type="text" value="Otomatis mengikuti cabang penyulang" disabled>
                         </div>
                     @else
                         <div class="form-group">
@@ -195,6 +244,18 @@
                             <input type="text" value="{{ auth()->user()->cabang }}" disabled>
                         </div>
                     @endif
+
+                    <div class="form-group">
+                        <label>GI / Penyulang</label>
+                        <select name="penyulang_id" class="select-penyulang" required>
+                            <option value="">-- Pilih Penyulang --</option>
+                            @foreach($penyulangs as $p)
+                                <option value="{{ $p->id }}">
+                                    {{ optional($p->gi)->nama_gi ?? '-' }} - {{ $p->nama_penyulang }} ({{ $p->cabang }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
                     <div class="form-group">
                         <label>Lokasi</label>
@@ -212,13 +273,21 @@
                     </div>
 
                     <div class="modal-actions">
-                        <button type="button" class="btn btn-secondary" onclick="closeModal('createModal')">Batal</button>
-                        <button type="submit" class="btn">Simpan</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('createModal')">
+                            Batal
+                        </button>
+                        <button type="submit" class="btn">
+                            Simpan
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     @endif
+
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <style>
         .arrester-page {
@@ -230,6 +299,16 @@
             font-size: 34px;
             font-weight: 800;
             color: #111827;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 18px;
+            border: 1px solid #fecaca;
+            font-weight: 700;
         }
 
         .top-bar {
@@ -271,38 +350,59 @@
         .arrester-table {
             width: 100%;
             border-collapse: collapse;
-            overflow: hidden;
-            border-radius: 14px;
-            background: #fff;
+            background: white;
         }
 
-        .arrester-table th,
+        .arrester-table th {
+            background: #0891b2;
+            color: white;
+            padding: 12px;
+            font-weight: 800;
+            text-align: center;
+            border: 1px solid #d1d5db;
+        }
+
         .arrester-table td {
+            padding: 11px 12px;
             border: 1px solid #e5e7eb;
-            padding: 14px 12px;
             text-align: center;
             font-size: 14px;
             vertical-align: middle;
         }
 
-        .arrester-table th {
-            background: #f8fafc;
-            color: #111827;
-            font-weight: 700;
+        .arrester-table tbody tr:hover {
+            background: #f1f5f9;
         }
 
-        .arrester-table tbody tr:hover {
-            background: #f9fafb;
+        .kode-badge,
+        .cabang-badge,
+        .gi-badge,
+        .penyulang-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-weight: 800;
+            font-size: 12px;
         }
 
         .kode-badge {
-            display: inline-block;
-            padding: 6px 10px;
-            border-radius: 999px;
             background: #dbeafe;
             color: #1d4ed8;
-            font-weight: 800;
-            letter-spacing: 0.3px;
+        }
+
+        .cabang-badge {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .gi-badge {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .penyulang-badge {
+            background: #eef2ff;
+            color: #3730a3;
         }
 
         .action-buttons {
@@ -313,7 +413,7 @@
         }
 
         .btn-sm {
-            padding: 8px 12px;
+            padding: 7px 12px;
             font-size: 13px;
         }
 
@@ -344,6 +444,22 @@
             line-height: 1.6;
             max-width: 480px;
             margin: 0 auto;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 6px;
+            color: #6b7280;
+            font-size: 12px;
+        }
+
+        .form-group select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            background: #fff;
+            font-size: 14px;
         }
 
         .modal-overlay {
@@ -413,13 +529,8 @@
                 margin-bottom: 16px;
             }
 
-            .top-bar {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
+            .top-bar,
             .search-bar {
-                width: 100%;
                 flex-direction: column;
                 align-items: stretch;
             }
@@ -442,6 +553,18 @@
                 flex-direction: column;
             }
         }
+
+        .select2-container .select2-selection--single {
+            height: 46px;
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 46px;
+        }
     </style>
 
     @if($canManageArrester)
@@ -458,6 +581,15 @@
                 if (e.target.classList.contains('modal-overlay')) {
                     e.target.classList.remove('show');
                 }
+            });
+
+            $(document).ready(function () {
+                $('.select-penyulang').select2({
+                    width: '100%',
+                    placeholder: '-- Pilih / ketik Penyulang --',
+                    allowClear: true,
+                    dropdownParent: $('.modal-box')
+                });
             });
         </script>
     @endif

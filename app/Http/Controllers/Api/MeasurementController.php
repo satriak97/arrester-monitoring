@@ -49,34 +49,28 @@ class MeasurementController extends Controller
     }
 
     public function latest()
-{
-    $user = auth()->user();
+    {
+        $data = Measurement::with('arrester.penyulang.gi')
+            ->orderByDesc('measured_at')
+            ->limit(20)
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'arrester_id' => $item->arrester_id,
+                    'gi' => optional(optional(optional($item->arrester)->penyulang)->gi)->nama_gi,
+                    'id_penyulang' => optional(optional($item->arrester)->penyulang)->id,
+                    'penyulang' => optional(optional($item->arrester)->penyulang)->nama_penyulang,
+                    'lokasi' => optional($item->arrester)->lokasi,
+                    'latitude' => optional($item->arrester)->latitude,
+                    'longitude' => optional($item->arrester)->longitude,
+                    'leak_current' => (float) $item->leak_current,
+                    'status' => $item->status,
+                    'measured_at' => \Carbon\Carbon::parse($item->measured_at)->format('Y-m-d H:i:s'),
+                ];
+            });
 
-    $query = Measurement::with('arrester')
-        ->orderByDesc('measured_at')
-        ->limit(20);
-
-    if ($user && in_array($user->role, ['admin_cabang', 'user'])) {
-        $query->whereHas('arrester', function ($q) use ($user) {
-            $q->where('cabang', $user->cabang);
-        });
-    }
-
-    $data = $query->get()
-        ->map(function ($item) {
-            return [
-                'id'           => $item->id,
-                'arrester_id'  => $item->arrester_id,
-                'lokasi'       => $item->arrester?->lokasi ?? '-',
-                'latitude'     => $item->arrester?->latitude,
-                'longitude'    => $item->arrester?->longitude,
-                'leak_current' => $item->leak_current,
-                'status'       => $item->status ?: $this->getStatusFromLeakCurrent($item->leak_current),
-                'measured_at'  => \Carbon\Carbon::parse($item->measured_at)->format('Y-m-d H:i:s'),
-            ];
-        });
-
-    return response()->json($data);
+        return response()->json($data);
     }
 
     private function getStatusFromLeakCurrent($leakCurrent)

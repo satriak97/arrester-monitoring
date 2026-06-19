@@ -10,6 +10,7 @@ class Arrester extends Model
         'kode_arrester',
         'lokasi',
         'cabang',
+        'penyulang_id',
         'latitude',
         'longitude',
     ];
@@ -23,5 +24,10 @@ class Arrester extends Model
     {
         return $this->hasOne(\App\Models\Measurement::class, 'arrester_id', 'kode_arrester')
             ->latestOfMany('measured_at');
+    }
+
+    public function penyulang()
+    {
+        return $this->belongsTo(\App\Models\Penyulang::class, 'penyulang_id');
     }
 }

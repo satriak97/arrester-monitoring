@@ -67,6 +67,9 @@
                     <thead>
                         <tr>
                             <th>ID Arrester</th>
+                            <th>GI</th>
+                            <th>ID Penyulang</th>
+                            <th>Penyulang</th>
                             <th>Lokasi</th>
                             <th>Koordinat</th>
                             <th>Leak Current</th>
@@ -77,7 +80,26 @@
                     <tbody id="dataTable">
                         @forelse($measurements as $m)
                             <tr>
-                                <td>{{ $m->arrester_id }}</td>
+                                <td>
+                                    <span class="id-badge">{{ $m->arrester_id }}</span>
+                                </td>
+                                <td>
+                                    <span class="gi-badge">
+                                        {{ optional(optional(optional($m->arrester)->penyulang)->gi)->nama_gi ?? '-' }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="id-penyulang-badge">
+                                        {{ optional(optional($m->arrester)->penyulang)->id ?? '-' }}
+                                    </span>
+                                </td>
+                                
+                                <td>
+                                    <span class="penyulang-badge">
+                                        {{ optional(optional($m->arrester)->penyulang)->nama_penyulang ?? '-' }}
+                                    </span>
+                                </td>
                                 <td>{{ optional($m->arrester)->lokasi ?? '-' }}</td>
                                 <td>
                                     @if(optional($m->arrester)->latitude && optional($m->arrester)->longitude)
@@ -102,7 +124,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6">
+                                <td colspan="8">
                                     <div class="empty-state">
                                         <div class="empty-icon">📡</div>
                                         <div class="empty-title">Belum ada data monitoring</div>
@@ -245,25 +267,68 @@
         .monitoring-table {
             width: 100%;
             border-collapse: collapse;
-            background: #fff;
+            background: white;
         }
 
-        .monitoring-table th,
+        .monitoring-table th {
+            background: #0891b2;
+            color: white;
+            padding: 12px;
+            font-weight: 800;
+            text-align: center;
+            border: 1px solid #d1d5db;
+        }
+
         .monitoring-table td {
+            padding: 11px 12px;
             border: 1px solid #e5e7eb;
-            padding: 14px 12px;
             text-align: center;
             font-size: 14px;
             vertical-align: middle;
         }
 
-        .monitoring-table th {
-            background: #f8fafc;
-            font-weight: 700;
+        .monitoring-table tbody tr:hover {
+            background: #f1f5f9;
         }
 
-        .monitoring-table tbody tr:hover {
-            background: #f9fafb;
+        .id-badge {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: #dbeafe;
+            color: #1d4ed8;
+            font-weight: 800;
+            font-size: 12px;
+        }
+
+        .gi-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: #dcfce7;
+            color: #166534;
+            font-weight: 800;
+            font-size: 12px;
+        }
+
+        .id-penyulang-badge{
+            display:inline-block;
+            padding:6px 12px;
+            border-radius:999px;
+            background:#e0e7ff;
+            color:#3730a3;
+            font-weight:700;
+            font-size:13px;
+        }
+
+        .penyulang-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: #eef2ff;
+            color: #3730a3;
+            font-weight: 800;
+            font-size: 12px;
         }
 
         .status-badge {
@@ -399,6 +464,8 @@
 
                 return {
                     ...row,
+                    gi: row.gi ?? arrester.gi ?? '-',
+                    penyulang: row.penyulang ?? arrester.penyulang ?? '-',
                     lokasi: row.lokasi && row.lokasi !== '-' ? row.lokasi : (arrester.lokasi ?? '-'),
                     latitude: row.latitude ?? arrester.latitude ?? null,
                     longitude: row.longitude ?? arrester.longitude ?? null,
@@ -486,15 +553,32 @@
 
                 tableHtml += `
                     <tr>
-                        <td>${row.arrester_id}</td>
+                        <td>
+                            <span class="id-badge">${row.arrester_id}</span>
+                        </td>
+
+                        <td>
+                            <span class="gi-badge">${row.gi ?? '-'}</span>
+                        </td>
+
+                        <td>
+                            <span class="id-penyulang-badge">${row.id_penyulang ?? '-'}</span>
+                        </td>
+
+                        <td>
+                            <span class="penyulang-badge">${row.penyulang ?? '-'}</span>
+                        </td>
+
                         <td>${row.lokasi ?? '-'}</td>
                         <td>${koordinat}</td>
-                        <td>${row.leak_current} mA</td>
+                        <td>${parseFloat(row.leak_current).toFixed(2)} mA</td>
+
                         <td>
                             <span class="status-badge ${getStatusClass(row.status)}">
                                 ${formatStatus(row.status)}
                             </span>
                         </td>
+
                         <td>${row.measured_at}</td>
                     </tr>
                 `;
@@ -503,7 +587,7 @@
             if (!tableHtml) {
                 tableHtml = `
                     <tr>
-                        <td colspan="6">
+                        <td colspan="9">
                             <div class="empty-state">
                                 <div class="empty-icon">📡</div>
                                 <div class="empty-title">Belum ada data monitoring</div>
@@ -571,7 +655,11 @@
                     <b>ID Arrester:</b> ${item.kode_arrester}<br>
                     <b>Lokasi:</b> ${item.lokasi ?? '-'}<br>
                     <b>Status:</b> ${formatStatus(item.status)}<br>
-                    <b>Leak Current:</b> ${item.leak_current !== null ? item.leak_current + ' mA' : '-'}<br>
+                    <b>Leak Current:</b> ${
+                        item.leak_current !== null
+                            ? parseFloat(item.leak_current).toFixed(2) + ' mA'
+                            : '-'
+                    }<br>
                     <b>Waktu:</b> ${item.measured_at ?? '-'}<br><br>
 
                     <a href="/measurement-history/${item.kode_arrester}" 
@@ -614,13 +702,13 @@
         }
 
         function loadRealtimeData() {
-            fetch('/api/measurement/latest')
+            fetch('/api/measurement/latest?time=' + new Date().getTime())
                 .then(response => response.json())
                 .then(data => {
                     const rows = normalizeRealtimeRows([...data].reverse());
-
+                    console.log(rows);
                     const labels = rows.map(row => row.measured_at);
-                    const values = rows.map(row => row.leak_current);
+                    const values = rows.map(row => parseFloat(row.leak_current));
 
                     renderTable(rows);
 
@@ -632,6 +720,9 @@
                     chartLeak.data.datasets[0].data = values;
                     chartLeak.data.datasets[1].data = Array(values.length).fill(1);
                     chartLeak.data.datasets[2].data = Array(values.length).fill(10);
+                    console.log(labels);
+                    console.log(values);
+
                     chartLeak.update();
                 })
                 .catch(error => {

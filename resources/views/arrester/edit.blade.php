@@ -57,6 +57,22 @@
                     </div>
                 @endif
 
+                {{-- PENYULANG --}}
+                <div class="form-group">
+                    <label>Penyulang</label>
+
+                    <select name="penyulang_id">
+                        <option value="">-- Pilih Penyulang --</option>
+
+                        @foreach($penyulangs as $p)
+                            <option value="{{ $p->id }}"
+                                {{ $a->penyulang_id == $p->id ? 'selected' : '' }}>
+                                {{ $p->gi->nama_gi }} - {{ $p->nama_penyulang }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
                 {{-- LOKASI --}}
                 <div class="form-group">
                     <label>Lokasi</label>

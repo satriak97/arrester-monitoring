@@ -3,6 +3,14 @@
         <h2 class="page-title">Kelola User</h2>
 
         <div class="panel">
+            @if($errors->any())
+                <div class="alert-error">
+                    @foreach($errors->all() as $error)
+                        <div>{{ $error }}</div>
+                    @endforeach
+                </div>
+            @endif
+
             <div class="top-bar">
                 <button type="button" class="btn" onclick="openModal('createUserModal')">
                     Tambah User
@@ -16,7 +24,14 @@
                         placeholder="Cari username / cabang..."
                         class="search-input"
                     >
+
                     <button type="submit" class="btn">Cari</button>
+
+                    @if(request('search'))
+                        <a href="{{ url('/users') }}" class="btn btn-secondary">
+                            Reset
+                        </a>
+                    @endif
                 </form>
             </div>
 
@@ -26,6 +41,7 @@
                         <tr>
                             <th>No</th>
                             <th>Username</th>
+                            <th>Nama</th>
                             <th>Role</th>
                             <th>Cabang</th>
                             <th>Admin Cabang</th>
@@ -37,14 +53,29 @@
                         @forelse($users as $u)
                             <tr>
                                 <td>{{ ($users->currentPage() - 1) * $users->perPage() + $loop->iteration }}</td>
-                                <td>{{ $u->username }}</td>
+
+                                <td>
+                                    <span class="username-badge">
+                                        {{ $u->username }}
+                                    </span>
+                                </td>
+
+                                <td>{{ $u->name }}</td>
+
                                 <td>
                                     <span class="role-badge {{ $u->role }}">
                                         {{ strtoupper($u->role) }}
                                     </span>
                                 </td>
-                                <td>{{ $u->cabang ?? '-' }}</td>
+
+                                <td>
+                                    <span class="cabang-badge">
+                                        {{ $u->cabang ?? '-' }}
+                                    </span>
+                                </td>
+
                                 <td>{{ optional($u->adminCabang)->name ?? '-' }}</td>
+
                                 <td>
                                     <div class="action-buttons">
                                         <button type="button" class="btn btn-sm" onclick="openModal('editUserModal{{ $u->id }}')">
@@ -52,9 +83,10 @@
                                         </button>
 
                                         @if($u->role !== 'admin_master')
-                                            <form action="{{ url('/users/'.$u->id) }}" method="POST" style="display:inline-block;">
+                                            <form action="{{ url('/users/'.$u->id) }}" method="POST">
                                                 @csrf
                                                 @method('DELETE')
+
                                                 <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Yakin hapus user ini?')">
                                                     Hapus
                                                 </button>
@@ -64,7 +96,6 @@
                                 </td>
                             </tr>
 
-                            {{-- MODAL EDIT USER --}}
                             <div id="editUserModal{{ $u->id }}" class="modal-overlay">
                                 <div class="modal-box">
                                     <div class="modal-header">
@@ -112,8 +143,7 @@
                                                     <option value="">-- Pilih Admin Cabang --</option>
                                                     @isset($adminCabangs)
                                                         @foreach($adminCabangs as $adminCabang)
-                                                            <option value="{{ $adminCabang->id }}"
-                                                                {{ $u->admin_cabang_id == $adminCabang->id ? 'selected' : '' }}>
+                                                            <option value="{{ $adminCabang->id }}" {{ $u->admin_cabang_id == $adminCabang->id ? 'selected' : '' }}>
                                                                 {{ $adminCabang->name }} - {{ $adminCabang->cabang }}
                                                             </option>
                                                         @endforeach
@@ -144,15 +174,19 @@
                                         </div>
 
                                         <div class="modal-actions">
-                                            <button type="button" class="btn btn-secondary" onclick="closeModal('editUserModal{{ $u->id }}')">Batal</button>
-                                            <button type="submit" class="btn">Update</button>
+                                            <button type="button" class="btn btn-secondary" onclick="closeModal('editUserModal{{ $u->id }}')">
+                                                Batal
+                                            </button>
+                                            <button type="submit" class="btn">
+                                                Update
+                                            </button>
                                         </div>
                                     </form>
                                 </div>
                             </div>
                         @empty
                             <tr>
-                                <td colspan="6">
+                                <td colspan="7">
                                     <div class="empty-state">
                                         <div class="empty-icon">👤</div>
                                         <div class="empty-title">Belum ada user</div>
@@ -168,14 +202,13 @@
             </div>
 
             @if($users->count() > 0)
-                <div class="pagination-wrapper" style="margin-top:20px;">
+                <div class="pagination-wrapper">
                     {{ $users->links('vendor.pagination.pln-pagination') }}
                 </div>
             @endif
         </div>
     </div>
 
-    {{-- MODAL TAMBAH USER --}}
     <div id="createUserModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-header">
@@ -241,8 +274,12 @@
                 </div>
 
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('createUserModal')">Batal</button>
-                    <button type="submit" class="btn">Simpan</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('createUserModal')">
+                        Batal
+                    </button>
+                    <button type="submit" class="btn">
+                        Simpan
+                    </button>
                 </div>
             </form>
         </div>
@@ -260,6 +297,16 @@
             color: #111827;
         }
 
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 18px;
+            border: 1px solid #fecaca;
+            font-weight: 700;
+        }
+
         .top-bar {
             display: flex;
             justify-content: space-between;
@@ -275,57 +322,58 @@
         }
 
         .search-input {
-            padding: 12px;
+            padding: 12px 14px;
             border-radius: 12px;
             border: 1px solid #d1d5db;
-            min-width: 260px;
+            min-width: 280px;
+            min-height: 46px;
         }
 
         .user-table {
             width: 100%;
             border-collapse: collapse;
-            border-radius: 14px;
-            overflow: hidden;
             background: white;
         }
 
-        .user-table th,
-        .user-table td {
-            border: 1px solid #e5e7eb;
-            padding: 14px;
-            text-align: center;
-        }
-
         .user-table th {
-            background: #f9fafb;
-            font-weight: 700;
+            background: #0891b2;
+            color: white;
+            padding: 12px;
+            font-weight: 800;
+            text-align: center;
+            border: 1px solid #d1d5db;
         }
 
-        .user-table tr:hover {
-            background: #f3f4f6;
+        .user-table td {
+            padding: 11px 12px;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+            font-size: 14px;
+            vertical-align: middle;
         }
 
-        .action-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            flex-wrap: wrap;
+        .user-table tbody tr:hover {
+            background: #f1f5f9;
         }
 
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 13px;
-        }
-
-        .btn-secondary {
-            background: #6b7280;
-        }
-
+        .username-badge,
+        .cabang-badge,
         .role-badge {
-            padding: 5px 10px;
+            display: inline-block;
+            padding: 6px 12px;
             border-radius: 999px;
             font-size: 12px;
-            font-weight: 700;
+            font-weight: 800;
+        }
+
+        .username-badge {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .cabang-badge {
+            background: #dcfce7;
+            color: #166534;
         }
 
         .role-badge.admin_master {
@@ -341,6 +389,22 @@
         .role-badge.user {
             background: #dcfce7;
             color: #166534;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-sm {
+            padding: 7px 12px;
+            font-size: 13px;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
         }
 
         small {
@@ -427,6 +491,18 @@
             margin-top: 18px;
         }
 
+        .form-group select {
+            width: 100%;
+            padding: 11px 12px;
+            border-radius: 10px;
+            border: 1px solid #d1d5db;
+            background: white;
+        }
+
+        .pagination-wrapper {
+            margin-top: 20px;
+        }
+
         @media (max-width: 768px) {
             .user-page {
                 padding: 14px;
@@ -437,13 +513,10 @@
                 margin-bottom: 16px;
             }
 
-            .top-bar {
-                flex-direction: column;
-            }
-
+            .top-bar,
             .search-bar {
-                width: 100%;
                 flex-direction: column;
+                align-items: stretch;
             }
 
             .search-input,
@@ -455,7 +528,7 @@
             .user-table td {
                 white-space: nowrap;
                 font-size: 12px;
-                padding: 8px;
+                padding: 10px 8px;
             }
 
             .modal-actions {
@@ -484,8 +557,13 @@
             const cabangTarget = roleSelect.dataset.target;
             const adminTarget = roleSelect.dataset.admin;
 
-            const cabangField = cabangTarget ? document.getElementById(cabangTarget) : document.getElementById('createCabangManual');
-            const adminField = adminTarget ? document.getElementById(adminTarget) : document.getElementById('createAdminCabang');
+            const cabangField = cabangTarget
+                ? document.getElementById(cabangTarget)
+                : document.getElementById('createCabangManual');
+
+            const adminField = adminTarget
+                ? document.getElementById(adminTarget)
+                : document.getElementById('createAdminCabang');
 
             if (!cabangField || !adminField) return;
 
@@ -497,6 +575,7 @@
                 adminField.style.display = 'none';
 
                 if (cabangInput) cabangInput.required = true;
+
                 if (adminSelect) {
                     adminSelect.required = false;
                     adminSelect.value = '';
@@ -509,12 +588,14 @@
                     cabangInput.required = false;
                     cabangInput.value = '';
                 }
+
                 if (adminSelect) adminSelect.required = true;
             }
         }
 
         document.addEventListener('DOMContentLoaded', function () {
             const createRole = document.getElementById('createRoleSelect');
+
             if (createRole) {
                 toggleUserFields(createRole);
                 createRole.addEventListener('change', function () {

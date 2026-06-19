@@ -8,7 +8,7 @@
                     type="text"
                     name="search"
                     value="{{ request('search') }}"
-                    placeholder="Cari ID Arrester..."
+                    placeholder="Cari ID Arrester / GI / Penyulang / Lokasi..."
                     class="filter-input"
                 >
 
@@ -29,6 +29,9 @@
                         <tr>
                             <th>No</th>
                             <th>ID Arrester</th>
+                            <th>GI</th>
+                            <th>ID Penyulang</th>
+                            <th>Penyulang</th>
                             <th>Lokasi</th>
                             <th>Koordinat</th>
                             <th>Leak Current</th>
@@ -36,12 +39,36 @@
                             <th>Waktu</th>
                         </tr>
                     </thead>
+
                     <tbody>
                         @forelse($measurements as $m)
                             <tr>
-                                <td>{{ ($measurements->currentPage() - 1) * $measurements->perPage() + $loop->iteration }}</td>
-                                <td>{{ $m->arrester_id }}</td>
+                                <td>
+                                    {{ ($measurements->currentPage() - 1) * $measurements->perPage() + $loop->iteration }}
+                                </td>
+
+                                <td>
+                                    <span class="id-badge">
+                                        {{ $m->arrester_id }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="gi-badge">
+                                        {{ optional(optional(optional($m->arrester)->penyulang)->gi)->nama_gi ?? '-' }}
+                                    </span>
+                                </td>
+
+                                <td>{{ optional(optional($m->arrester)->penyulang)->id ?? '-' }}</td>
+
+                                <td>
+                                    <span class="penyulang-badge">
+                                        {{ optional(optional($m->arrester)->penyulang)->nama_penyulang ?? '-' }}
+                                    </span>
+                                </td>
+
                                 <td>{{ optional($m->arrester)->lokasi ?? '-' }}</td>
+
                                 <td>
                                     @if(optional($m->arrester)->latitude && optional($m->arrester)->longitude)
                                         {{ $m->arrester->latitude }}, {{ $m->arrester->longitude }}
@@ -49,7 +76,9 @@
                                         -
                                     @endif
                                 </td>
-                                <td>{{ $m->leak_current }} mA</td>
+
+                                <td>{{ number_format($m->leak_current, 2) }} mA</td>
+
                                 <td>
                                     @if($m->status === 'NORMAL')
                                         <span class="status-badge status-normal">NORMAL</span>
@@ -59,11 +88,12 @@
                                         <span class="status-badge status-fault">FAULT</span>
                                     @endif
                                 </td>
+
                                 <td>{{ \Carbon\Carbon::parse($m->measured_at)->format('d-m-Y H:i:s') }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7">
+                                <td colspan="10">
                                     <div class="empty-state">
                                         <div class="empty-icon">📊</div>
                                         <div class="empty-title">Belum ada data pengukuran</div>
@@ -79,7 +109,7 @@
             </div>
 
             @if($measurements->count() > 0)
-                <div class="pagination-wrapper" style="margin-top:20px;">
+                <div class="pagination-wrapper">
                     {{ $measurements->links('vendor.pagination.pln-pagination') }}
                 </div>
             @endif
@@ -119,7 +149,7 @@
         .filter-input {
             min-width: 280px;
             flex: 1;
-            max-width: 320px;
+            max-width: 360px;
         }
 
         .filter-select {
@@ -130,35 +160,61 @@
             background: #6b7280;
         }
 
-        .btn-secondary:hover {
-            background: #5b6472;
-        }
-
         .history-table {
             width: 100%;
             border-collapse: collapse;
-            overflow: hidden;
-            border-radius: 14px;
-            background: #fff;
+            background: white;
         }
 
-        .history-table th,
+        .history-table th {
+            background: #0891b2;
+            color: white;
+            padding: 12px;
+            font-weight: 800;
+            text-align: center;
+            border: 1px solid #d1d5db;
+        }
+
         .history-table td {
+            padding: 11px 12px;
             border: 1px solid #e5e7eb;
-            padding: 14px 12px;
             text-align: center;
             font-size: 14px;
             vertical-align: middle;
         }
 
-        .history-table th {
-            background: #f8fafc;
-            color: #111827;
-            font-weight: 700;
+        .history-table tbody tr:hover {
+            background: #f1f5f9;
         }
 
-        .history-table tbody tr:hover {
-            background: #f9fafb;
+        .id-badge {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: #dbeafe;
+            color: #1d4ed8;
+            font-weight: 800;
+            font-size: 12px;
+        }
+
+        .gi-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: #dcfce7;
+            color: #166534;
+            font-weight: 800;
+            font-size: 12px;
+        }
+
+        .penyulang-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: #eef2ff;
+            color: #3730a3;
+            font-weight: 800;
+            font-size: 12px;
         }
 
         .status-badge {
@@ -208,6 +264,10 @@
             line-height: 1.6;
             max-width: 480px;
             margin: 0 auto;
+        }
+
+        .pagination-wrapper {
+            margin-top: 20px;
         }
 
         @media (max-width: 768px) {
